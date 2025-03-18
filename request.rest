@@ -1,0 +1,30 @@
+### afficher tous les etudiants
+GET  http://localhost:3000/users HTTP/1.1
+content-type: application/json
+
+### afficher un etudiant
+GET  http://localhost:3000/users/1 HTTP/1.1
+content-type: application/json
+
+
+### ajout un etudiant
+POST   http://localhost:3000/users HTTP/1.1
+content-type: application/json
+
+{
+    "name": "mohamed"
+}
+
+
+### modifier  un etudiant
+PUT   http://localhost:3000/users/1 HTTP/1.1
+content-type: application/json
+
+{
+    "name": "Yoooo"
+}
+
+
+### supression  un etudiant
+DELETE    http://localhost:3000/users/1 HTTP/1.1
+content-type: application/json
