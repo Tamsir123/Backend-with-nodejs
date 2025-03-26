@@ -20,9 +20,8 @@ app.use(express.json());
 const dbConfig = {
     host: 'localhost',
     user: 'root',
-    password: 'SSSSSSSSSS@1#',
+    password: 'Tam@1#',
     database: '2ieapi',
-    port : 4000,
     connectionLimit: 10, // Nombre maximum de connexions simultanées
     waitForConnections: true, // Attendre une connexion disponible si le pool est plein
     queueLimit: 0 // Pas de limite pour la file d'attente
@@ -68,7 +67,7 @@ async function initializeDatabase() {
         
         // Création de la table étudiants si elle n'existe pas
         await connection.execute(`
-            CREATE TABLE IF NOT EXISTS etudiants (
+            CREATE TABLE IF NOT EXISTS etudiant (
                 id INT AUTO_INCREMENT PRIMARY KEY,
                 nom VARCHAR(100) NOT NULL,
                 prenom VARCHAR(100) NOT NULL,
@@ -89,11 +88,11 @@ async function initializeDatabase() {
 // Routes CRUD pour les étudiants
 /**
  * Obtenir tous les étudiants
- * @route GET /etudiants
+ * @route GET /etudiant
  */
-app.get('/etudiants', async (req, res) => {
+app.get('/etudiant', async (req, res) => {
     try {
-        const results = await executeQuery('SELECT id, nom, prenom, date_naissance, date_inscription FROM etudiants');
+        const results = await executeQuery('SELECT id, nom, prenom, date_naissance, date_inscription FROM etudiant');
         res.status(200).json(results);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -102,11 +101,11 @@ app.get('/etudiants', async (req, res) => {
 
 /**
  * Obtenir un étudiant par son ID
- * @route GET /etudiants/:id
+ * @route GET /etudiant/:id
  */
-app.get('/etudiants/:id', async (req, res) => {
+app.get('/etudiant/:id', async (req, res) => {
     try {
-        const [results] = await executeQuery('SELECT id, nom, prenom, date_naissance, date_inscription FROM etudiants WHERE id = ?', [req.params.id]);
+        const [results] = await executeQuery('SELECT id, nom, prenom, date_naissance, date_inscription FROM etudiant WHERE id = ?', [req.params.id]);
         if (results.length === 0) {
             return res.status(404).json({ error: 'Étudiant non trouvé' });
         }
@@ -118,31 +117,36 @@ app.get('/etudiants/:id', async (req, res) => {
 
 /**
  * Créer un nouvel étudiant
- * @route POST /etudiants
+ * @route POST /etudiant
  * @body {nom: string, prenom: string, date_naissance: string, password: string}
  */
-app.post('/etudiants', async (req, res) => {
+app.post('/etudiant', async (req, res) => {
     try {
         const { nom, prenom, date_naissance, password } = req.body;
         
-        // Validation des données
         if (!nom || !prenom || !date_naissance || !password) {
             return res.status(400).json({ 
                 error: 'Nom, prénom, date de naissance et mot de passe sont requis' 
             });
         }
 
-        // Hashage du mot de passe
         const hashedPassword = await hashPassword(password);
 
-        const [result] = await executeQuery(
-            'INSERT INTO etudiants (nom, prenom, date_naissance, password) VALUES (?, ?, ?, ?)',
+        const result = await executeQuery(
+            'INSERT INTO etudiant (nom, prenom, date_naissance, password) VALUES (?, ?, ?, ?)',
             [nom, prenom, date_naissance, hashedPassword]
         );
 
-        // Récupérer l'étudiant créé avec sa date d'inscription
-        const [newStudent] = await executeQuery('SELECT id, nom, prenom, date_naissance, date_inscription FROM etudiants WHERE id = ?', [result.insertId]);
+        const newStudentResult = await executeQuery(
+            'SELECT id, nom, prenom, date_naissance, date_inscription FROM etudiant WHERE id = ?',
+            [result.insertId]
+        );
 
+        if (!newStudentResult || newStudentResult.length === 0) {
+            return res.status(500).json({ error: 'Erreur lors de la récupération de l’étudiant créé' });
+        }
+
+        const newStudent = newStudentResult[0];
         res.status(201).json(newStudent);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -151,22 +155,22 @@ app.post('/etudiants', async (req, res) => {
 
 /**
  * Mettre à jour un étudiant existant
- * @route PUT /etudiants/:id
+ * @route PUT /etudiant/:id
  * @body {nom?: string, prenom?: string, date_naissance?: string, password?: string}
  */
-app.put('/etudiants/:id', async (req, res) => {
+app.put('/etudiant/:id', async (req, res) => {
     try {
         const id = req.params.id;
         const { nom, prenom, date_naissance, password } = req.body;
 
         // Vérification si l'étudiant existe
-        const [existing] = await executeQuery('SELECT * FROM etudiants WHERE id = ?', [id]);
+        const [existing] = await executeQuery('SELECT * FROM etudiant WHERE id = ?', [id]);
         if (!existing.length) {
             return res.status(404).json({ error: 'Étudiant non trouvé' });
         }
 
         // Mise à jour des champs fournis
-        let updateQuery = 'UPDATE etudiants SET ';
+        let updateQuery = 'UPDATE etudiant SET ';
         const params = [];
         if (nom) {
             updateQuery += 'nom = ?,';
@@ -191,7 +195,7 @@ app.put('/etudiants/:id', async (req, res) => {
         await executeQuery(updateQuery, params);
 
         // Récupérer l'étudiant mis à jour
-        const [updatedStudent] = await executeQuery('SELECT id, nom, prenom, date_naissance, date_inscription FROM etudiants WHERE id = ?', [id]);
+        const [updatedStudent] = await executeQuery('SELECT id, nom, prenom, date_naissance, date_inscription FROM etudiant WHERE id = ?', [id]);
 
         res.status(200).json(updatedStudent);
     } catch (error) {
